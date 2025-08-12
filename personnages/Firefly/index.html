@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Luciole / Firefly — Fiche complète | Honkai: Star Rail</title>
+  <link rel="stylesheet" href="./style.css" />
+  <script src="script.js?v=4" defer></script>
+  <script src="./move-equipment.js" defer></script>
+</head>
+<body data-char-id="1310">
+  <!-- Lien d'évitement pour l’accessibilité -->
+  <a class="skip-link" href="#main">Aller au contenu</a>
+
+  <!-- Header -->
+  <header class="topbar" id="top" role="banner">
+    <a href="../../index.html" class="back" aria-label="Retour au menu">← Retour</a>
+    <a href="#top" class="brand" aria-label="HSR Builds (accueil)">HSR Builds</a>
+    <button id="toc-open" class="toc-toggle" aria-controls="toc-drawer" aria-expanded="false">☰ Sommaire</button>
+  </header>
+
+  <!-- Barre de progression de lecture (optionnelle) -->
+  <div class="read-progress" aria-hidden="true">
+    <div class="read-progress__bar" id="progress"></div>
+  </div>
+
+  <div class="wrap">
+    <div class="layout">
+      <!-- Sommaire sticky (desktop) -->
+      <aside class="toc" id="toc" aria-label="Sommaire">
+        <h4>Sommaire</h4>
+        <a href="#personnage" class="active">Présentation</a>
+        <a href="#overview">Aperçu du build</a>
+        <a href="#statsrecap">Stats principales</a>
+        <a href="#skills">Compétences &amp; Talents</a>
+        <a href="#eidolons">Eidolons</a>
+        <a href="#equipment">Équipement</a>
+        <a href="#traces">Traces</a>
+        <a href="#teams">Teams</a>
+        <a href="#video">Vidéo</a>
+      </aside>
+
+      <!-- Contenu principal -->
+      <main id="main" tabindex="-1">
+        <!-- Personnage -->
+        <section id="personnage">
+          <div class="personnage">
+            <div class="portrait">
+              <img id="char-portrait" src="" alt="Portrait du personnage">
+            </div>
+            <div class="head">
+              <h1 class="title">Luciole / Firefly <span class="hl" style="font-size:20px;">★★★★★</span></h1>
+              <p class="subtitle">Les étiquettes ci‑dessous se remplissent automatiquement.</p>
+              <div class="tags"><!-- éléments & voie auto --></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- APERÇU -->
+        <section id="overview">
+          <h2>Aperçu du build recommandé</h2>
+          <div class="grid-3">
+            <!-- Sets conseillés (4 pièces) -->
+            <div class="card">
+              <h3>Sets conseillés</h3>
+              <div class="row" id="relics-row"><!-- rempli via override ou fallback --></div>
+            </div>
+            <!-- Substats -->
+            <div class="card">
+              <h3>Substats (priorité)</h3>
+              <div class="grid-2" id="substats-grid"><!-- override.substats --></div>
+            </div>
+            <!-- Ornement planaire -->
+            <div class="card">
+              <h3>Ornement planaire</h3>
+              <div class="grid-2" id="planars-grid"><!-- override.planars2 --></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- STATS PRINCIPALES -->
+        <section id="statsrecap">
+          <h2>Stats principales</h2>
+          <div class="kv-wrap"><!-- override.target_stats (label / valeur) --></div>
+        </section>
+
+        <!-- COMPÉTENCES -->
+        <section id="skills">
+          <h2>Compétences &amp; Talents</h2>
+          <div class="grid-2" id="skills-grid"><!-- auto depuis character_skills.json --></div>
+        </section>
+
+        <!-- EIDOLONS -->
+        <section id="eidolons">
+          <h2>Eidolons</h2>
+          <div class="grid-3" id="eidolons-grid"><!-- auto depuis character_ranks.json --></div>
+        </section>
+
+        <!-- TRACES MAJEURES -->
+        <section id="traces">
+          <h2>Traces &amp; Priorités</h2>
+          <div class="grid-2" id="traces-major-grid"><!-- auto A2/A4/A6 --></div>
+        </section>
+
+        <!-- ÉQUIPEMENT -->
+        <section id="equipment">
+          <h2>Équipement</h2>
+          <div class="card">
+            <h3>Cônes de lumière</h3>
+            <div id="cones-grid" class="grid-2"><!-- auto (par voie), tooltips S1–S5 --></div>
+          </div>
+        </section>
+
+        <!-- TEAMS (pilotées par override) -->
+        <section id="teams">
+          <h2>Teams recommandées</h2>
+          <div id="teams-grid" class="grid-2"><!-- override.teams --></div>
+        </section>
+
+        <!-- VIDÉO -->
+        <section id="video">
+          <h2>Guide vidéo</h2>
+          <div class="video">
+            <!-- Tu peux mettre un embed ici si tu veux -->
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="site-footer" role="contentinfo">
+    <div class="footer-inner">
+      <div class="footer-copy">© <span id="year"></span> HSR Builds. Tous droits réservés.</div>
+    </div>
+  </footer>
+
+  <!-- Drawer mobile pour le Sommaire -->
+  <div class="drawer" id="toc-drawer" hidden aria-hidden="true" role="dialog" aria-label="Sommaire">
+    <div class="drawer__overlay" data-close></div>
+    <div class="drawer__panel">
+      <div class="drawer__head">
+        <strong>Sommaire</strong>
+        <button id="toc-close" class="drawer__close" aria-label="Fermer le sommaire">✕</button>
+      </div>
+      <nav class="toc" aria-label="Sommaire mobile">
+        <a href="#personnage" class="active">Présentation</a>
+        <a href="#overview">Aperçu du build</a>
+        <a href="#statsrecap">Stats principales</a>
+        <a href="#skills">Compétences</a>
+        <a href="#eidolons">Eidolons</a>
+        <a href="#equipment">Équipement</a>
+        <a href="#traces">Traces</a>
+        <a href="#teams">Teams</a>
+        <a href="#video">Vidéo</a>
+      </nav>
+    </div>
+  </div>
+
+  <button class="backtop" id="backtop" aria-label="Remonter" title="Remonter en haut">↑</button>
+
+  <script src="./script.js"></script>
+</body>
+</html>

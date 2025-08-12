@@ -1,0 +1,231 @@
+
+/* ============================================================
+   HSR — Firefly (Luciole) — style.css (full regen)
+   Structure attendue :
+   - Page : hsr/personnages/Firefly/index.html
+   - Données : hsr/data/index_min/fr/*
+   ============================================================ */
+
+/* --------- Design tokens --------- */
+:root{
+  --bg:#0f1117;            /* fond global */
+  --panel:#161a24;         /* cartes/sections */
+  --panel-2:#1b2030;       /* cartes secondaires */
+  --ink:#e7ecff;           /* texte principal */
+  --muted:#97a1bd;         /* texte atténué */
+  --accent:#ffd369;        /* accent (surbrillance) */
+  --accent-2:#8aa2ff;      /* accent secondaire */
+  --line:#242b41;          /* bordures */
+  --radius:16px;           /* arrondis */
+  --shadow:0 10px 30px rgba(0,0,0,.35);
+  --lift-y:-2px;
+}
+
+/* --------- Base --------- */
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  color:var(--ink);
+  background:
+    radial-gradient(1200px 800px at 10% -10%, #1b2240 0%, transparent 60%),
+    var(--bg);
+  background-repeat:no-repeat;
+  background-size:cover;
+  background-attachment:fixed;
+  font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+img{max-width:100%; height:auto;}
+
+/* Utility */
+.hl{ color:var(--accent); font-weight:800 }
+.muted{ color:var(--muted) }
+.note{ color:var(--muted); font-size:.95rem }
+.error{ margin:8px 0; padding:10px; border:1px solid #a33; background:#2a1212; color:#ffd; border-radius:8px }
+
+/* --------- Skip link (a11y) --------- */
+.skip-link{position:absolute;left:-999px;top:auto;width:1px;height:1px;overflow:hidden}
+.skip-link:focus{left:12px;top:12px;width:auto;height:auto;padding:.5rem .75rem;border-radius:8px;background:#0c1020;color:var(--ink);z-index:1000}
+
+/* --------- Topbar --------- */
+.topbar{
+  position:sticky; top:0; z-index:60;
+  display:flex; align-items:center; gap:12px;
+  padding:calc(12px + env(safe-area-inset-top,0px)) 16px 12px 16px;
+  backdrop-filter:saturate(140%) blur(8px);
+  background:rgba(15,17,23,.8);
+  border-bottom:1px solid var(--line);
+}
+.back{
+  display:inline-flex; align-items:center; gap:.6rem;
+  background:var(--panel); border:1px solid var(--line);
+  color:var(--ink); text-decoration:none; padding:.55rem .9rem;
+  border-radius:999px; font-weight:700; flex:0 0 auto;
+}
+.brand{margin-inline:auto; opacity:.9; text-decoration:none; color:var(--ink); font-weight:800; letter-spacing:.02em}
+.toc-toggle{ display:none; flex:0 0 auto; border:1px solid var(--line); background:var(--panel); color:var(--ink); border-radius:999px; padding:.55rem .9rem; font-weight:800; cursor:pointer }
+@media (max-width:1080px){ .toc-toggle{ display:inline-flex } }
+
+/* --------- Read progress --------- */
+.read-progress{position:sticky; top:0; z-index:70; height:3px; background:transparent}
+.read-progress__bar{height:3px; width:0; background:linear-gradient(90deg,var(--accent),var(--accent-2))}
+
+/* --------- Layout / TOC --------- */
+.wrap{max-width:1280px; margin:24px auto 96px; padding:0 16px}
+.layout{display:grid; grid-template-columns:260px 1fr; gap:24px}
+@media (max-width:1080px){ .layout{grid-template-columns:1fr} }
+
+.toc{
+  position:sticky; top:88px; align-self:start;
+  background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+  padding:12px; box-shadow:var(--shadow);
+}
+.toc h4{margin:0 0 8px; font-size:.9rem; color:var(--muted); letter-spacing:.08em; text-transform:uppercase}
+.toc a{
+  display:block; padding:12px; margin:6px 0; border-radius:10px;
+  color:var(--ink); text-decoration:none; border:1px solid transparent; font-weight:700;
+}
+.toc a:hover{background:#141a31; border-color:#2a3350}
+.toc a.active{background:#141a31; border-color:#2a3350; box-shadow:0 0 0 2px #2a335044 inset}
+.toc a:focus{outline:2px solid var(--accent); outline-offset:2px}
+@media (max-width:1080px){ .toc{ display:none } }
+
+/* --------- Sections --------- */
+section{
+  scroll-margin-top:110px;
+  margin:32px 0; padding:24px;
+  background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+  box-shadow:var(--shadow);
+}
+section h2{
+  margin:0 0 16px; font-size:26px; color:var(--accent);
+  border-bottom:2px solid #2a3250; padding-bottom:8px;
+}
+
+/* --------- Personnage --------- */
+.personnage{display:grid; grid-template-columns:420px 1fr; gap:24px; align-items:center; margin-bottom:8px}
+@media (max-width:980px){ .personnage{grid-template-columns:1fr} }
+.portrait{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:12px; box-shadow:var(--shadow)}
+.portrait img{width:100%; height:auto; border-radius:12px; display:block}
+.head{padding:20px; border-radius:var(--radius); background:linear-gradient(180deg,#1b2135,#161a24); border:1px solid var(--line); box-shadow:var(--shadow)}
+.title{margin:0 0 8px 0; font-size:40px; letter-spacing:.5px}
+.subtitle{margin:0 0 12px; color:var(--muted)}
+/* chips (élément / voie) */
+.tags{display:flex; flex-wrap:wrap; gap:8px; margin-top:8px}
+.tag{background:#0f1428; border:1px solid var(--line); padding:.45rem .7rem; border-radius:999px; font-weight:800; letter-spacing:.03em; font-size:.9rem}
+.tag .chip-icon{ width:16px; height:16px; border-radius:4px; border:1px solid #2b3350; margin-right:6px; vertical-align:-3px }
+
+/* --------- Grids --------- */
+.grid-2{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+.grid-3{display:grid; grid-template-columns:repeat(3,1fr); gap:16px}
+.grid-4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+@media(max-width:980px){ .grid-3,.grid-4{grid-template-columns:1fr 1fr} }
+@media(max-width:640px){ .grid-2,.grid-3,.grid-4{grid-template-columns:1fr} }
+
+/* --------- Cards / Badges --------- */
+.card{background:var(--panel-2); border:1px solid var(--line); padding:16px; border-radius:14px}
+.card h3{margin:0 0 10px; font-size:18px; color:#dbe3ff; letter-spacing:.03em}
+.row{display:flex; flex-direction:column; gap:10px}
+
+.badge{
+  position:relative; display:block; width:100%;
+  background:#11172e; border:1px solid var(--line); border-radius:10px;
+  padding:.45rem .7rem .55rem .7rem; font-weight:700; font-size:.95rem;
+}
+/* structure anti-chevauchement (texte à gauche, label à droite) */
+.badge .badge-body{ display:grid; grid-template-columns: minmax(0,1fr) auto; align-items:start; gap:12px; width:100% }
+.badge .badge-left{ display:inline-flex; align-items:flex-start; gap:10px; min-width:0; padding-right:12px; word-break:normal; white-space:normal; hyphens:auto }
+.badge .badge-right{ justify-self:end; min-width:max-content }
+.badge .picon{ width:40px; height:40px; border-radius:10px; border:1px solid #2b3350; background:#0b0f1e }
+.badge .order-dot{ position:absolute; left:6px; top:6px; width:auto; height:auto; font-weight:800; opacity:.9 }
+.badge.has-order{ padding-left:34px }
+
+/* Doubler la taille pour "Sets conseillés" seulement */
+#overview .badge .picon{ width:64px; height:64px }
+
+/* mini tags (BiS / Alternative) */
+.mini-tag{ display:inline-flex; align-items:center; gap:6px; padding:.25rem .5rem; border:1px solid var(--line);
+  background:#0f1428; border-radius:999px; font-weight:800; font-size:.85rem; color:var(--ink) }
+.mini-tag .dot{ width:8px; height:8px; border-radius:50%; display:inline-block; background:var(--accent) }
+#overview .badge .mini-tag{ position:static !important; margin-left:8px } /* à l'intérieur de la colonne de droite */
+
+/* --------- Key-values (Stats principales) --------- */
+.kv{display:grid; grid-template-columns:140px 1fr; gap:10px; align-items:center; margin:8px 0}
+@media (max-width:600px){ .kv{grid-template-columns:120px 1fr} }
+.kv label{color:var(--muted); font-size:.95rem}
+.kv .v{font-weight:800}
+
+/* --------- Items (Compétences / Eidolons / Cones / Planaires / Traces) --------- */
+.item{position:relative; display:flex; align-items:flex-start; gap:14px; background:#141a31; border:1px solid var(--line); border-radius:12px; padding:12px; box-shadow:0 6px 14px rgba(0,0,0,.18)}
+.item img{width:64px; height:64px; object-fit:contain; border-radius:10px; border:1px solid #2b3350; background:#0b0f1e}
+.item .t h4{margin:2px 0 6px; font-size:16px}
+.item .t p{margin:0; color:var(--muted); font-size:.95rem; line-height:1.5}
+
+/* Tooltip générique */
+.tooltip{
+  display:none; position:absolute; bottom:calc(100% + 10px); left:12px;
+  background:#0c1020; color:var(--ink); border:1px solid var(--line);
+  padding:10px 12px; border-radius:10px; width:min(460px, 90vw);
+  box-shadow:var(--shadow); white-space:normal; line-height:1.4; z-index:200;
+}
+.item:hover .tooltip, .badge:hover .tooltip, .trace-item:hover .tooltip{ display:block }
+
+/* --------- Vidéo --------- */
+.video{position:relative; padding-bottom:56.25%; height:0; overflow:hidden; border-radius:14px; border:1px solid var(--line); background:#0c1020}
+.video iframe{position:absolute; inset:0; width:100%; height:100%; border:0}
+
+/* --------- Back to top --------- */
+.backtop{ position:fixed; right:18px; bottom:calc(18px + env(safe-area-inset-bottom,0px)); z-index:90; background:var(--accent); color:#111; border:0; border-radius:999px; padding:.7rem .9rem; font-weight:800; box-shadow:var(--shadow); cursor:pointer }
+
+/* --------- Drawer (Sommaire mobile) --------- */
+.drawer{ position:fixed; inset:0; z-index:100; display:grid; grid-template-rows:1fr auto; background:transparent }
+.drawer[hidden]{ display:none }
+.drawer__overlay{ background:rgba(0,0,0,.45) }
+.drawer__panel{ background:var(--panel); border-top-left-radius:18px; border-top-right-radius:18px; border:1px solid var(--line); padding:12px; box-shadow:var(--shadow); max-height:80vh; overflow:auto }
+.drawer__head{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 4px 10px }
+.drawer__close{ border:1px solid var(--line); background:var(--panel-2); color:var(--ink); border-radius:10px; padding:.5rem .7rem; font-weight:800; cursor:pointer }
+.drawer .toc{ display:block; position:static; box-shadow:none }
+.drawer .toc a{ padding:14px }
+
+/* --------- Footer --------- */
+.site-footer{ margin-top:40px; border-top:1px solid var(--line); background:linear-gradient(180deg,#141a20,#0f1117); padding:24px 16px calc(24px + env(safe-area-inset-bottom,0px)); color:var(--muted) }
+.footer-inner{ max-width:1280px; margin:0 auto; display:block; text-align:center }
+.footer-copy{ font-weight:700; color:var(--ink) }
+
+/* --------- Cones control (S1–S5) --------- */
+.cones-ctrl{ display:flex; align-items:center; gap:10px; margin:8px 0 12px }
+.cones-ctrl .label{ font-weight:800; color:#dbe3ff }
+.cones-ctrl .seg{ display:inline-flex; gap:6px }
+.cones-ctrl .seg button{
+  border:1px solid var(--line); background:#0f1428; color:var(--ink);
+  border-radius:10px; padding:.35rem .6rem; font-weight:800; cursor:pointer;
+}
+.cones-ctrl .seg button.active{ outline:2px solid var(--accent); outline-offset:2px }
+
+/* --------- Hover doux --------- */
+.card, .item{ transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background-color .18s ease; will-change: transform }
+.card:hover, .item:hover{ transform: translateY(var(--lift-y)); box-shadow:0 8px 24px rgba(0,0,0,.28); border-color: var(--accent); z-index: 5 }
+.tag{ transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease, background-color .15s ease }
+.tag:hover{ transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,0,0,.22); border-color: var(--accent) }
+
+/* --------- Prefers reduced motion --------- */
+@media (prefers-reduced-motion: reduce){
+  .card:hover, .item:hover, .tag:hover{ transform:none; box-shadow:var(--shadow) }
+}
+
+
+/* ===== Traces & Priorités — Layout amélioré ===== */
+#traces .grid-2{ grid-template-columns: minmax(0,1fr) 380px; align-items:start; gap:16px }
+@media (max-width: 980px){ #traces .grid-2{ grid-template-columns: 1fr } }
+
+.traces-stack{ display:flex; flex-direction:column; gap:12px; background:var(--panel-2); border:1px solid var(--line); border-radius:14px; padding:16px }
+.traces-stack .item{ background:#141a31; border:1px solid var(--line); border-radius:12px; padding:12px; display:flex; align-items:center; gap:12px }
+.traces-stack .item img{ width:48px; height:48px; border-radius:10px; border:1px solid #2b3350; background:#0f1428; object-fit:contain }
+.traces-stack .item h4{ margin:0; font-size:16px }
+
+.trace-order-card{ position:sticky; top:88px; align-self:start; background:var(--panel-2); border:1px solid var(--line); border-radius:14px; padding:16px }
+.trace-order-card h3{ margin:0 0 12px }
+.trace-order-list{ display:flex; flex-direction:column; gap:10px }
+.trace-order{ display:grid; grid-template-columns: 26px 40px 1fr; align-items:center; gap:10px; background:#141a31; border:1px solid var(--line); border-radius:12px; padding:8px 10px }
+.trace-order .order-dot{ width:22px; height:22px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-weight:800; color:#111; background:var(--accent) }
+.trace-type-icon{ width:36px; height:36px; border-radius:8px; border:1px solid #2b3350; background:#0f1428; object-fit:contain }
