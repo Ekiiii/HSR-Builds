@@ -1,43 +1,93 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#0f172a" />
+  <title>HSR Builds — Accueil</title>
+  <link rel="stylesheet" href="styles.css">
   <meta name="color-scheme" content="light dark">
-  <title>HSR Builds — Honkai: Star Rail</title>
-  <meta name="description" content="Builds et recommandations pour les personnages de Honkai: Star Rail (reliques, planaires, cônes de lumière, stats, conseils)." />
-  <!-- TODO: Remplace l'URL canonique ci‑dessous une fois GitHub Pages activé -->
-  <!-- <link rel="canonical" href="https://<user>.github.io/HSR-Builds/" /> -->
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <header class="site-header">
-    <div class="container header-inner">
-      <h1 class="site-title">HSR Builds</h1>
-      <nav class="site-nav" aria-label="Navigation principale">
-        <a href="#/" class="nav-link">Accueil</a>
-        <a href="#/personnages" class="nav-link">Personnages</a>
-        <a href="https://github.com/Ekiiii/HSR-Builds" target="_blank" rel="noopener" class="nav-link">GitHub</a>
-      </nav>
+<header class="topbar">
+  <div class="brand">HSR Builds</div>
+  <div class="spacer"></div>
+  <nav class="nav">
+    <a class="link" href="#/">Accueil</a>
+    <a class="link" href="https://github.com/Ekiiii/HSR-Builds" target="_blank" rel="noopener">GitHub</a>
+  </nav>
+</header>
+
+<main class="wrap" id="app">
+  <section class="hero" id="hero">
+    <div>
+      <h1>Choisissez votre personnage</h1>
+      <p>Filtrez par <strong>Voie</strong>, <strong>Élément</strong>, <strong>Rareté</strong> ou cherchez par nom.</p>
     </div>
-  </header>
+  </section>
 
-  <main id="app" class="container" tabindex="-1">
-    <!-- Le contenu est injecté par script.js via le router -->
-    <noscript>
-      Active JavaScript pour voir les builds. Tu peux aussi parcourir le dossier <code>/personnages</code> et <code>/data</code> directement sur GitHub.
-    </noscript>
-  </main>
+  <!-- Filtres -->
+  <section aria-label="Filtres" class="panel" id="filters">
+    <div class="filters">
+      <input id="q" class="ctrl wide" type="search" placeholder="Rechercher un personnage…" aria-label="Recherche par nom" />
 
-  <footer class="site-footer">
-    <div class="container">
-      <p>HSR‑Builds • Fait avec ❤️ pour la communauté Honkai: Star Rail.</p>
+      <select id="path" class="ctrl" aria-label="Filtrer par Voie">
+        <option value="">Voie — toutes</option>
+        <option>Chasse</option>
+        <option>Harmonie</option>
+        <option>Préservation</option>
+        <option>Nihilité</option>
+        <option>Destruction</option>
+        <option>Érudition</option>
+        <option>Abondance</option>
+        <option>Souvenir</option>
+      </select>
+
+      <select id="element" class="ctrl" aria-label="Filtrer par Élément">
+        <option value="">Élément — tous</option>
+        <option>Physique</option>
+        <option>Feu</option>
+        <option>Glace</option>
+        <option>Foudre</option>
+        <option>Vent</option>
+        <option>Quantique</option>
+        <option>Imaginaire</option>
+      </select>
+
+      <select id="rarity" class="ctrl" aria-label="Filtrer par Rareté">
+        <option value="">Rareté — toutes</option>
+        <option value="5">5★</option>
+        <option value="4">4★</option>
+      </select>
+
+      <select id="sort" class="ctrl" aria-label="Trier">
+        <option value="name-asc">Nom A → Z</option>
+        <option value="name-desc">Nom Z → A</option>
+        <option value="rarity-desc">Rareté 5★ → 4★</option>
+        <option value="rarity-asc">Rareté 4★ → 5★</option>
+      </select>
+
+      <button id="reset" class="btn" type="button">Réinitialiser</button>
     </div>
-  </footer>
 
-  <script type="module" src="./router.js"></script>
-  <script type="module" src="./script.js"></script>
+    <div class="meta-line">
+      <span class="pill" id="count">0 résultat</span>
+      <span class="pill" id="activeFilters" hidden></span>
+    </div>
+  </section>
+
+  <!-- Grille -->
+  <section aria-label="Liste des personnages" id="listView">
+    <div id="grid" class="grid" role="grid" aria-live="polite"></div>
+  </section>
+
+  <!-- Vue détail (injectée dynamiquement) -->
+  <section id="detailView" class="panel" hidden></section>
+
+  <footer>© HSR Builds — 2025</footer>
+</main>
+
+<!-- IMPORTANT: modules pour que les imports ES fonctionnent -->
+<script type="module" src="./router.js"></script>
+<script type="module" src="./script.js"></script>
 </body>
 </html>

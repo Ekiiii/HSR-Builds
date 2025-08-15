@@ -1,8 +1,5 @@
-// router.js — mini hash router compatible GitHub Pages
-// Usage: registerRoute(pattern, handler). Patterns support ":param" segments.
-
+// router.js — mini hash-router compatible GitHub Pages
 const routes = [];
-
 export function registerRoute(pattern, handler) {
   const keys = [];
   const regex = new RegExp('^' + pattern
@@ -10,13 +7,11 @@ export function registerRoute(pattern, handler) {
     .replace(/:(\w+)/g, (_, k) => { keys.push(k); return '([^/]+)'; }) + '$');
   routes.push({ regex, keys, handler });
 }
-
 export function navigate(path) {
   if (!path.startsWith('#/')) path = '#'+ (path.startsWith('/') ? path : '/' + path);
   if (location.hash !== path) location.hash = path;
   else route();
 }
-
 function route() {
   const hash = location.hash || '#/';
   const path = hash.replace(/^#/, '');
@@ -27,9 +22,9 @@ function route() {
       return r.handler(params);
     }
   }
-  // 404 interne (si aucune route ne correspond)
-  if (typeof window.renderNotFound === 'function') window.renderNotFound(path);
+  // Fallback: home
+  const home = routes.find(r => r.regex.test('/'));
+  if (home) home.handler({});
 }
-
 window.addEventListener('hashchange', route);
 window.addEventListener('DOMContentLoaded', route);
