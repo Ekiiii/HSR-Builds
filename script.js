@@ -1,173 +1,138 @@
+// script.js — data loading + views + search
+import { registerRoute, navigate } from './router.js';
 
-// ===== Config & fetch =====
-const BASE = (typeof window !== "undefined" && window.BASE_URL != null ? window.BASE_URL : "").replace(/\/+$/,"");
+const APP = {
+  dataUrl: './data/characters.json', // ajuste si besoin
+  cacheKey: 'hsr-builds:data:v1',
+};
 
-async function fetchCharacters(){
-  const url = `${BASE}/data/characters.json`;
-  const res = await fetch(url);
-  if(!res.ok) throw new Error(`HTTP ${res.status}`);
-  const raw = await res.json();
-  // Map to UI model; strip french articles from voie for filtering labels
-  const stripArticle = (s) => s.replace(/^L['’]/,'').replace(/^La\s/,'').replace(/^Le\s/,'').trim();
-  return raw.map(x=>({
-    id: x.slug,
-    slug: x.slug,
-    name: x.name,
-    element: x.element,
-    // UI "path" without articles to match your <select> options
-    path: stripArticle(x.voie),
-    voieRaw: x.voie,
-    rarity: x.rarity,
-    href: `personnages/${x.slug}`,
-    img: x.hh_img
-  }));
-}
-
-// ===== DOM =====
-const $grid = document.getElementById('grid');
-const $q = document.getElementById('q');
-const $path = document.getElementById('path');
-const $element = document.getElementById('element');
-const $rarity = document.getElementById('rarity');
-const $sort = document.getElementById('sort');
-const $count = document.getElementById('count');
-const $activeFilters = document.getElementById('activeFilters');
-const $reset = document.getElementById('reset');
-
-// ===== Helpers =====
-const FALLBACK_IMG = 'https://starrail.honeyhunterworld.com/img/character/march-7th-character_icon.webp';
-
-function renderCard(ch){
-  const a = document.createElement('a');
-  a.href = ch.href || '#';
-  a.className = 'card char';
-  a.setAttribute('data-element', ch.element);
-  a.setAttribute('role', 'gridcell');
-  a.setAttribute('tabindex', '0');
-
-  a.innerHTML = `
-    <div class="thumb">
-      <img loading="lazy" decoding="async" width="128" height="128" src="${ch.img}" alt="${ch.name}">
-    </div>
-    <div class="name">
-      ${ch.name} ${ch.rarity === 5 ? '<span class="rar-5">5★</span>' : '<span class="rar-4">4★</span>'}
-    </div>
-    <div class="tags" aria-hidden="true">
-      <span class="t">${ch.path}</span>
-      <span class="t">${ch.element}</span>
-    </div>
-  `;
-
-  const img = a.querySelector('img');
-  img.addEventListener('error', () => { img.src = FALLBACK_IMG; });
-
-  return a;
-}
-
-function renderList(list){
-  $grid.innerHTML = '';
-  if(!list.length){
-    const empty = document.createElement('div');
-    empty.className = 'no-result';
-    empty.textContent = 'Aucun résultat. Modifiez vos filtres.';
-    $grid.appendChild(empty);
-    $count.textContent = '0 résultat';
-    $activeFilters.hidden = true;
-    return;
+async function getData() {
+  const cached = localStorage.getItem(APP.cacheKey);
+  if (cached) {
+    try { return JSON.parse(cached); } catch (_) {}
   }
-  const frag = document.createDocumentFragment();
-  list.forEach(ch => frag.appendChild(renderCard(ch)));
-  $grid.appendChild(frag);
-  $count.textContent = `${list.length} ${list.length>1?'résultats':'résultat'}`;
+  const res = await fetch(APP.dataUrl, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Impossible de charger les données');
+  const json = await res.json();
+  localStorage.setItem(APP.cacheKey, JSON.stringify(json));
+  return json;
 }
 
-function getFilters(){
-  return {
-    q: ($q.value || '').trim().toLowerCase(),
-    path: $path.value,
-    element: $element.value,
-    rarity: $rarity.value,
-    sort: $sort.value
-  };
+function el(tag, attrs = {}, ...children) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'class') node.className = v;
+    else if (k.startsWith('on') && typeof v === 'function') node.addEventListener(k.slice(2), v);
+    else if (v !== false && v != null) node.setAttribute(k, String(v));
+  }
+  for (const c of children.flat()) {
+    if (c == null) continue;
+    node.appendChild(c.nodeType ? c : document.createTextNode(String(c)));
+  }
+  return node;
 }
 
-function applyFiltersSort(list){
-  const f = getFilters();
-  let out = list.filter(ch=>{
-    if(f.q && !ch.name.toLowerCase().includes(f.q)) return false;
-    if(f.path && ch.path !== f.path) return false;
-    if(f.element && ch.element !== f.element) return false;
-    if(f.rarity && String(ch.rarity) !== f.rarity) return false;
-    return true;
+function renderApp(node) {
+  const mount = document.getElementById('app');
+  mount.innerHTML = '';
+  mount.appendChild(node);
+  // Focus pour l’accessibilité
+  mount.focus({ preventScroll: true });
+}
+
+function normalize(str) {
+  return (str || '').toString().normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+}
+
+function cardFromCharacter(c) {
+  const name = c.name || c.nom || c.slug || 'Inconnu';
+  const slug = (c.slug || name).toString().toLowerCase().replace(/\s+/g, '-');
+  const img = c.image || c.img || `assets/${slug}.webp`;
+  return el('article', { class: 'card', role: 'article' },
+    el('button', { class: 'card-button', onClick: () => navigate(`#/personnages/${encodeURIComponent(slug)}`), 'aria-label': `Voir la fiche de ${name}` },
+      el('img', { src: img, alt: name, loading: 'lazy' }),
+      el('h3', {}, name),
+      c.path ? el('p', { class: 'muted' }, String(c.path)) : null,
+    ),
+  );
+}
+
+function tableFromObject(obj) {
+  const wrapper = el('div', { class: 'kv' });
+  for (const [k, v] of Object.entries(obj)) {
+    const key = el('div', { class: 'kv-key' }, k);
+    const val = el('div', { class: 'kv-val' }, typeof v === 'object' ? JSON.stringify(v, null, 2) : String(v));
+    wrapper.append(key, val);
+  }
+  return wrapper;
+}
+
+// Home / Personnages listing
+registerRoute('/', async () => {
+  const data = await getData();
+  const list = Array.isArray(data) ? data : (data.characters || data.personnages || []);
+
+  let filtered = list;
+
+  const search = el('input', {
+    id: 'search', type: 'search', placeholder: 'Rechercher un personnage…',
+    'aria-label': 'Rechercher un personnage',
+    onInput: (e) => applySearch(e.target.value)
   });
 
-  switch(f.sort){
-    case 'name-asc': out.sort((a,b)=>a.name.localeCompare(b.name,'fr')); break;
-    case 'name-desc': out.sort((a,b)=>b.name.localeCompare(a.name,'fr')); break;
-    case 'rarity-desc': out.sort((a,b)=>b.rarity-a.rarity || a.name.localeCompare(b.name,'fr')); break;
-    case 'rarity-asc': out.sort((a,b)=>a.rarity-b.rarity || a.name.localeCompare(b.name,'fr')); break;
+  function applySearch(q) {
+    const qn = normalize(q);
+    filtered = list.filter(c => normalize(c.name || c.nom || c.slug).includes(qn));
+    renderGrid();
   }
 
-  // Chips récap
-  const chips = [];
-  if(f.path) chips.push(`Voie: ${f.path}`);
-  if(f.element) chips.push(`Élément: ${f.element}`);
-  if(f.rarity) chips.push(`Rareté: ${f.rarity}★`);
-  if(f.q) chips.push(`Recherche: “${$q.value.trim()}”`);
-  if(chips.length){ 
-  $activeFilters.hidden = false; 
-  $activeFilters.textContent = chips.join(' · '); 
-} else { 
-  $activeFilters.hidden = true; 
-  $activeFilters.textContent = ''; // 🔹 vider le tag visuel
-}
+  const grid = el('section', { class: 'grid' });
 
-  renderList(out);
-  syncURL();
-}
-
-function syncURL(){
-  const f = getFilters();
-  const p = new URLSearchParams();
-  if(f.q) p.set('q', f.q);
-  if(f.path) p.set('path', f.path);
-  if(f.element) p.set('element', f.element);
-  if(f.rarity) p.set('rarity', f.rarity);
-  if(f.sort && f.sort !== 'name-asc') p.set('sort', f.sort);
-  const q = p.toString();
-  history.replaceState(null, '', q ? `?${q}` : location.pathname);
-}
-
-(function initFromURL(){
-  const p = new URLSearchParams(location.search);
-  if(p.has('q')) $q.value = p.get('q');
-  if(p.has('path')) $path.value = p.get('path');
-  if(p.has('element')) $element.value = p.get('element');
-  if(p.has('rarity')) $rarity.value = p.get('rarity');
-  if(p.has('sort')) $sort.value = p.get('sort');
-})();
-
-(async function init(){
-  try {
-    const data = await fetchCharacters();
-    // Events
-    let t; // debounce
-    $q.addEventListener('input', ()=>{ clearTimeout(t); t = setTimeout(()=>applyFiltersSort(data), 120); });
-    [$path,$element,$rarity,$sort].forEach(el=> el.addEventListener('change', ()=>applyFiltersSort(data)));
-    $reset.addEventListener('click', ()=>{
-	$q.value=''; 
-	$path.value=''; 
-	$element.value=''; 
-	$rarity.value=''; 
-	$sort.value='name-asc';
-	$activeFilters.textContent = ''; // 🔹 force reset visuel
-	$activeFilters.hidden = true;
-	applyFiltersSort();
-	});
-    // First render
-    applyFiltersSort(data);
-  } catch(e){
-    console.error("Erreur de chargement des personnages:", e);
-    $grid.innerHTML = '<div class="no-result">Impossible de charger les personnages (JSON). Lance un petit serveur local pour éviter CORS (ex. Live Server).</div>';
+  function renderGrid() {
+    grid.innerHTML = '';
+    if (!filtered.length) grid.append(el('p', { class: 'muted' }, 'Aucun résultat.'));
+    for (const c of filtered) grid.append(cardFromCharacter(c));
   }
-})();
+
+  renderGrid();
+
+  renderApp(el('section', {},
+    el('h2', {}, 'Personnages'),
+    el('div', { class: 'toolbar' }, search),
+    grid,
+  ));
+});
+
+// Character detail
+registerRoute('/personnages/:slug', async ({ slug }) => {
+  const data = await getData();
+  const list = Array.isArray(data) ? data : (data.characters || data.personnages || []);
+  const c = list.find(x => (x.slug || normalize(x.name || x.nom)).toLowerCase() === slug.toLowerCase());
+
+  if (!c) return window.renderNotFound?.(`/personnages/${slug}`);
+
+  const header = el('div', { class: 'detail-header' },
+    el('img', { src: c.image || c.img || `../assets/${slug}.webp`, alt: c.name || c.nom || slug, loading: 'lazy' }),
+    el('div', { class: 'detail-meta' },
+      el('h2', {}, c.name || c.nom || slug),
+      c.path ? el('p', { class: 'muted' }, String(c.path)) : null,
+    )
+  );
+
+  const build = el('section', {},
+    el('h3', {}, 'Build recommandé'),
+    tableFromObject(c.build || c),
+  );
+
+  const back = el('p', {}, el('a', { href: '#/' }, '← Retour'));
+
+  renderApp(el('article', { class: 'detail' }, header, build, back));
+});
+
+// 404 fallback renderer used by router
+window.renderNotFound = (path) => {
+  renderApp(el('section', {},
+    el('h2', {}, 'Page introuvable'),
+    el('p', {}, `Aucune page pour « ${path} ». `, el('a', { href: '#/' }, 'Retour à l'accueil')),
+  ))
+};

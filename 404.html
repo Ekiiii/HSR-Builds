@@ -2,31 +2,22 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Redirection…</title>
   <meta name="robots" content="noindex">
-  <script>
-    // Try to guess BASE_URL automatically for GitHub Pages project sites ("/<repo>/") or custom domains ("/").
-    window.BASE_URL = window.BASE_URL || (function(){
-      var segs = location.pathname.split("/").filter(Boolean);
-      // If path looks like "/<repo>/something", use "/<repo>"
-      return segs.length > 1 ? ("/" + segs[0]) : "/";
-    })();
-  </script>
-  <script src="/router.js" defer></script>
-  <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;padding:24px;color:#e7ecff;background:#0f1117}
-    .box{max-width:620px;margin:10vh auto;background:#161a24;border:1px solid #242b41;border-radius:14px;padding:18px}
-    h1{margin:0 0 8px;font-size:22px}
-    p{margin:6px 0;color:#97a1bd}
-    a{color:#ffd369}
-  </style>
 </head>
 <body>
-  <div class="box">
-    <h1>Redirection en cours…</h1>
-    <p>Si rien ne se passe, <a href="/">retournez à l’accueil</a>.</p>
-    <noscript><p>Activez JavaScript pour que la redirection fonctionne, ou utilisez le lien vers l’accueil ci‑dessus.</p></noscript>
-  </div>
+<script>
+(function () {
+  // Si ton Pages est de type "Project Pages", base = '/HSR-Builds'.
+  // Si c'est un User/Org Pages (ex: username.github.io), mets base = '/'.
+  var base = '/HSR-Builds';
+  var l = window.location;
+  var path = l.pathname.replace(base, '');
+  if (!path.startsWith('/')) path = '/' + path;
+  var query = l.search || '';
+  var hash = l.hash || '';
+  l.replace(base + '/index.html#' + path + query + hash);
+})();
+</script>
 </body>
 </html>
