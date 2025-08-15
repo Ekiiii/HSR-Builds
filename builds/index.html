@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HSR Builds — Liste des personnages</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/main.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="/"><span class="logo">★</span><span class="brand-text">HSR Builds</span></a>
+      <nav class="main-nav">
+        <a class="active" href="/builds/">Builds</a>
+        <a href="#" class="muted">Tier List</a>
+        <a href="#" class="muted">Outils</a>
+        <a href="/faq/">FAQ</a>
+        <a href="#" class="muted">À propos</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container builds-layout site-main">
+    <aside class="filters">
+      <div class="filter-header">
+        <h2>Filtres</h2>
+        <button id="resetFilters" class="btn small">Réinitialiser</button>
+      </div>
+
+      <label class="field"><span>Nom</span><input type="text" id="searchName" placeholder="Rechercher (FR/EN)…"></label>
+
+      <div class="field"><span>Élément</span><div id="filterElements" class="chips"></div></div>
+      <div class="field"><span>Voie</span><div id="filterPaths" class="chips"></div></div>
+      <div class="field"><span>Rareté</span>
+        <div class="chips" id="filterRarity">
+          <button class="chip" data-rarity="5">★★★★★</button>
+          <button class="chip" data-rarity="4">★★★★</button>
+        </div>
+      </div>
+    </aside>
+
+    <section class="cards">
+      <div class="cards-header">
+        <h1>Personnages</h1>
+        <div class="toolbar">
+          <label class="field compact">
+            <span>Trier par</span>
+            <select id="sortBy">
+              <option value="name">Nom (A→Z)</option>
+              <option value="rarity">Rareté (5→4)</option>
+              <option value="element">Élément</option>
+              <option value="path">Voie</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div id="cardsGrid" class="grid"></div>
+      <template id="cardTpl">
+        <a class="card" href="#">
+          <div class="portrait"></div>
+          <div class="meta">
+            <div class="meta-top"><h3 class="name">Nom</h3><div class="rarity">★★★★★</div></div>
+            <div class="meta-bottom"><span class="tag element">Physique</span><span class="tag path">Destruction</span></div>
+          </div>
+        </a>
+      </template>
+    </section>
+  </main>
+
+  <footer class="site-footer"><div class="container footer-inner"><p>© 2025 HSR Builds. Tous droits réservés.</p></div></footer>
+  <script type="module" src="../assets/js/builds.js"></script>
+</body>
+</html>
