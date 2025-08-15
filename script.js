@@ -1,233 +1,257 @@
-// script.js — affichage dynamique + filtres + détail
-import { registerRoute, navigate } from './router.js';
+// script.js — Index FR + images + filtres + remplacement {NICKNAME}
+// Lit data/index_min/fr/{characters, nickname, avatars, elements, paths}.json
+// Garde la structure de ton index.html + styles.css existants.
 
+const BASE = 'data/index_min/fr';
 const PATHS = {
-  characters: 'data/index_min/fr/characters.json',
-  characterDir: (name) => `personnages/${name}`,
+  characters: `${BASE}/characters.json`,
+  nickname:   `${BASE}/nickname.json`,
+  avatars:    `${BASE}/avatars.json`,
+  elements:   `${BASE}/elements.json`,
+  paths:      `${BASE}/paths.json`,
+  iconAvatar: (id) => `${BASE}/icon/avatar/${id}.png`
 };
 
-// Helpers
-const $ = (s) => document.querySelector(s);
-const norm = (s='') => s.toString().normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
-const slugify = (s='') => s.toString().trim().toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-_]/g,'');
-const PLACEHOLDER = "data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512"><rect width="100%" height="100%" fill="#1f2937"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="140" fill="#9ca3af" font-family="system-ui,Segoe UI,Arial,sans-serif">?</text></svg>";
+// Utils
+const by = (sel)=>document.querySelector(sel);
+const $ = (tag, attrs={}, ...kids)=>{
+  const el = document.createElement(tag);
+  for (const [k,v] of Object.entries(attrs||{})) {
+    if (k === 'class') el.className = v;
+    else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2), v);
+    else if (v !== false && v != null) el.setAttribute(k, String(v));
+  }
+  for (const k of kids.flat()) el.append(k?.nodeType ? k : document.createTextNode(k ?? ''));
+  return el;
+};
+const normalize = (s)=> (s??'').toString().normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase();
 
+// Fetch with in-memory cache
+const mem = new Map();
 async function fetchJSON(url) {
-  const res = await fetch(url, { cache: 'no-store' });
-  if (!res.ok) throw new Error(`HTTP ${res.status} @ ${url}`);
-  return res.json();
-}
-async function fetchOptionalJSON(url) {
-  try {
-    const res = await fetch(url, { cache: 'no-store' });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch { return null; }
+  if (mem.has(url)) return mem.get(url);
+  const res = await fetch(url, { cache:'no-store' });
+  if (!res.ok) throw new Error(`Fetch raté: ${url}`);
+  const json = await res.json();
+  mem.set(url, json);
+  return json;
 }
 
-// Unifier le schéma du JSON de personnages (quelle que soit la forme)
-function normalizeCharacters(data) {
-  let arr = [];
-  if (Array.isArray(data)) arr = data;
-  else if (data && Array.isArray(data.characters)) arr = data.characters;
-  else if (data && Array.isArray(data.personnages)) arr = data.personnages;
-  else if (data && typeof data === 'object') arr = Object.values(data);
-  return arr.map((raw) => ({ 
-    raw,
-    name: raw.name || raw.nom || raw.id || raw.slug || 'Inconnu',
-    slug: raw.slug || slugify(raw.name || raw.nom || raw.id || ''),
-    element: raw.element || raw.élément || raw.elem || '',
-    path: raw.path || raw.voie || raw.route || '',
-    rarity: Number(raw.rarity || raw.rarete || raw['rareté'] || raw.stars || 0),
-    image: raw.image || raw.img || null,
-  }));
+// Field pickers (schema tolerant)
+function pickId(c)        { return c.id ?? c.avatarId ?? c.AvatarId ?? c.baseId ?? c.BaseID ?? c.characterId ?? c.CharacterID; }
+function pickRarity(c)    { return c.rarity ?? c.Rarity ?? c.star ?? c.Star ?? c.Quality ?? c.quality; }
+function pickElement(c)   { return c.element ?? c.Element ?? c.damageType ?? c.DamageType ?? c.ElementType; }
+function pickPath(c)      { return c.path ?? c.Path ?? c.baseType ?? c.BaseType ?? c.class ?? c.Class ?? c.role ?? c.Role; }
+
+// Name resolver: replaces {NICKNAME} using nickname.json; fallback via avatars.json names
+function resolveNameFR(c, nicknameMap, avatarsMap) {
+  const raw = c.name ?? c.Name ?? c.avatarName ?? c.AvatarName ?? c.displayName ?? c.DisplayName ?? '';
+  if (raw && !/\{NICKNAME\}/.test(raw)) return String(raw);
+  const id = pickId(c);
+  const nick = (id != null) ? nicknameMap.get(String(id)) : null;
+  if (nick) return raw ? String(raw).replace('{NICKNAME}', nick) : nick;
+  const av = (id != null) ? avatarsMap.get(String(id)) : null;
+  if (av?.name) return String(av.name);
+  if (raw) return String(raw).replace('{NICKNAME}', '').trim() || `Inconnu ${id??''}`.trim();
+  return `Inconnu ${id??''}`.trim();
 }
 
-// Global state
-let ALL = [];
-let VIEW = [];
-
-// Render card (garde tes classes .card, .avatar, .name, .meta)
-function makeCard(c) {
-  const a = document.createElement('a');
-  a.className = 'card';
-  a.href = `#/personnages/${encodeURIComponent(c.name)}`;
-  a.setAttribute('role','gridcell');
-  a.dataset.name = c.name;
-  a.dataset.path = c.path;
-  a.dataset.element = c.element;
-  a.dataset.rarity = String(c.rarity || '');
-
-  const img = document.createElement('img');
-  img.className = 'avatar';
-  img.alt = c.name;
-  img.loading = 'lazy';
-
-  const imgCandidates = [
-    c.image,
-    `personnages/${c.name}/${c.name}.webp`,
-    `personnages/${c.name}/${c.name}.png`,
-    `assets/${c.slug}.webp`,
-    `assets/${c.slug}.png`,
-  ].filter(Boolean);
-
-  let setOnce = false;
-  (async () => {
-    for (const u of imgCandidates) {
-      try {
-        const r = await fetch(u, { method: 'HEAD' });
-        if (r.ok) { img.src = u; setOnce = true; break; }
-      } catch (e) { /* ignore */ }
-    }
-    if (!setOnce) img.src = PLACEHOLDER;
-  })();
-
-  const info = document.createElement('div');
-  info.className = 'card-info';
-  const nameEl = document.createElement('span');
-  nameEl.className = 'name';
-  nameEl.textContent = c.name;
-  const metaEl = document.createElement('span');
-  metaEl.className = 'meta';
-  const badge = [ c.rarity ? `${c.rarity}★` : null, c.element || null, c.path || null ].filter(Boolean).join(' • ');
-  metaEl.textContent = badge;
-
-  info.append(nameEl, metaEl);
-  a.append(img, info);
-
-  a.addEventListener('click', (e) => { e.preventDefault(); navigate(`#/personnages/${encodeURIComponent(c.name)}`); });
-  return a;
+// Icon resolver
+function resolveIcon(c, avatarsMap) {
+  const direct = c.icon ?? c.Icon ?? c.image ?? c.Image ?? c.avatarIcon ?? c.AvatarIcon;
+  if (typeof direct === 'string') return direct;
+  const id = pickId(c);
+  const av = (id != null) ? avatarsMap.get(String(id)) : null;
+  if (av?.icon) return av.icon;
+  if (id != null) return PATHS.iconAvatar(id);
+  return 'assets/hsr_avatar_placeholder.svg';
 }
 
-function renderGrid() {
-  const grid = $('#grid');
-  grid.innerHTML = '';
-  if (!VIEW.length) { grid.innerHTML = '<p>Aucun résultat.</p>'; return; }
-  for (const c of VIEW) grid.appendChild(makeCard(c));
-  $('#count').textContent = VIEW.length + (VIEW.length > 1 ? ' résultats' : ' résultat');
+// Build translator (EN->FR) from elements.json and paths.json + common aliases
+function buildTranslator(elementsJson, pathsJson) {
+  const map = new Map();
+  const add = (k,v)=>{ if(k&&v) map.set(normalize(k), v); };
+
+  // elements
+  if (Array.isArray(elementsJson)) {
+    for (const e of elementsJson) add(e.name??e.Name, e.text??e.Text??e.name??e.Name);
+  } else if (elementsJson && typeof elementsJson === 'object') {
+    for (const [k,v] of Object.entries(elementsJson)) add(k, v?.text??v?.name??v);
+  }
+  // paths
+  if (Array.isArray(pathsJson)) {
+    for (const p of pathsJson) add(p.name??p.Name, p.text??p.Text??p.name??p.Name);
+  } else if (pathsJson && typeof pathsJson === 'object') {
+    for (const [k,v] of Object.entries(pathsJson)) add(k, v?.text??v?.name??v);
+  }
+
+  const aliases = {
+    // Elements
+    physical: 'Physique', fire: 'Feu', ice: 'Glace', thunder: 'Foudre', wind: 'Vent', quantum: 'Quantique', imaginary: 'Imaginaire',
+    // Paths
+    hunt: 'Chasse', harmony: 'Harmonie', preservation: 'Préservation', nihility: 'Nihilité', destruction: 'Destruction', erudition: 'Érudition', abundance: 'Abondance', remembrance: 'Souvenir', memory: 'Souvenir',
+    // Some dumps use role/class terms
+    warrior: 'Destruction', shaman: 'Harmonie', knight: 'Préservation', priest: 'Abondance', rogue: 'Nihilité', mage: 'Érudition'
+  };
+  for (const [k,v] of Object.entries(aliases)) add(k, v);
+
+  return (str)=> map.get(normalize(str)) ?? str;
 }
 
-function applyFilters() {
-  const q = norm($('#q').value);
-  const pathF = $('#path').value;
-  const elF = $('#element').value;
-  const rarF = $('#rarity').value;
-  const sort = $('#sort').value;
-
-  VIEW = ALL.filter(c => {
-    const passQ = !q || norm(c.name).includes(q);
-    const passPath = !pathF || norm(c.path) === norm(pathF);
-    const passEl = !elF || norm(c.element) === norm(elF);
-    const passRar = !rarF || String(c.rarity||'').startsWith(String(rarF));
-    return passQ && passPath && passEl && passRar;
-  });
-
-  const cmp = {
-    'name-asc': (a,b) => a.name.localeCompare(b.name),
-    'name-desc': (a,b) => b.name.localeCompare(a.name),
-    'rarity-desc': (a,b) => (Number(b.rarity)-Number(a.rarity)) || a.name.localeCompare(b.name),
-    'rarity-asc': (a,b) => (Number(a.rarity)-Number(b.rarity)) || a.name.localeCompare(b.name),
-  }[sort] || ((a,b)=>0);
-  VIEW.sort(cmp);
-
-  const active = [];
-  if (q) active.push(`« ${$('#q').value} »`);
-  if (pathF) active.push(pathF);
-  if (elF) active.push(elF);
-  if (rarF) active.push(`${rarF}★`);
-  const pill = $('#activeFilters');
-  if (active.length) { pill.hidden = false; pill.textContent = 'Filtres: ' + active.join(' · '); }
-  else pill.hidden = true;
-
-  renderGrid();
+// Target href: Firefly opens its HTML page, others stay as '#' for now
+function buildHrefFor(nameFR) {
+  const slug = String(nameFR).normalize('NFD').replace(/\p{Diacritic}/gu,'').replace(/[^a-zA-Z0-9]+/g,'-').replace(/^-+|-+$/g,'').toLowerCase();
+  if (/^firefly$/.test(slug)) return 'personnages/Firefly/index.html';
+  return '#';
 }
 
-function wireFilters() {
-  $('#q').addEventListener('input', applyFilters);
-  $('#path').addEventListener('change', applyFilters);
-  $('#element').addEventListener('change', applyFilters);
-  $('#rarity').addEventListener('change', applyFilters);
-  $('#sort').addEventListener('change', applyFilters);
-  $('#reset').addEventListener('click', () => {
-    $('#q').value = ''; $('#path').value = ''; $('#element').value = '';
-    $('#rarity').value = ''; $('#sort').value = 'name-asc'; applyFilters();
-  });
-}
+async function main() {
+  const grid = by('#grid');
+  const q = by('#q'), selPath = by('#path'), selEl = by('#element'), selR = by('#rarity'), selSort = by('#sort'), resetBtn = by('#reset'), count = by('#count'), active = by('#activeFilters');
 
-// Views
-function showList() {
-  $('#hero').hidden = false;
-  $('#filters').hidden = false;
-  $('#listView').hidden = false;
-  $('#detailView').hidden = true;
-  $('#detailView').innerHTML = '';
-}
-
-async function loadDetail(name) {
-  const container = $('#detailView');
-  container.innerHTML = '';
-  $('#hero').hidden = true;
-  $('#filters').hidden = true;
-  $('#listView').hidden = true;
-  container.hidden = false;
-
-  const dir = PATHS.characterDir(name);
-  const [builds, skills, eidolons, traces, stats, notes] = await Promise.all([
-    fetchOptionalJSON(`${dir}/builds.json`),
-    fetchOptionalJSON(`${dir}/skills.json`),
-    fetchOptionalJSON(`${dir}/eidolons.json`),
-    fetchOptionalJSON(`${dir}/traces.json`),
-    fetchOptionalJSON(`${dir}/stats.json`),
-    fetchOptionalJSON(`${dir}/notes.json`),
+  const [characters, nicknameRaw, avatarsRaw, elementsJson, pathsJson] = await Promise.all([
+    fetchJSON(PATHS.characters),
+    fetchJSON(PATHS.nickname).catch(()=>null),
+    fetchJSON(PATHS.avatars).catch(()=>null),
+    fetchJSON(PATHS.elements).catch(()=>({})),
+    fetchJSON(PATHS.paths).catch(()=>({})),
   ]);
 
-  const c = ALL.find(x => x.name === name) || {
-    name, rarity: '', element: '', path: ''
-  };
+  // nickname.json -> Map<id, nameFR>
+  const nicknameMap = new Map();
+  if (nicknameRaw) {
+    if (Array.isArray(nicknameRaw)) {
+      for (const x of nicknameRaw) {
+        const id = x.id ?? x.characterId ?? x.avatarId ?? x.AvatarId ?? x.CharacterID;
+        const name = x.name ?? x.text ?? x.value ?? x.Nickname ?? x.Nom;
+        if (id != null && name) nicknameMap.set(String(id), name);
+      }
+    } else {
+      for (const [k,v] of Object.entries(nicknameRaw)) {
+        const name = v?.name ?? v?.text ?? v ?? null;
+        if (name) nicknameMap.set(String(k), name);
+      }
+    }
+  }
 
-  const head = document.createElement('div');
-  head.className = 'character-header';
-  head.innerHTML = `<h2>${name}</h2><p class="meta">${[c.rarity?`${c.rarity}★`:null,c.element,c.path].filter(Boolean).join(' • ')}</p>`;
+  // avatars.json -> Map<id, {name?, icon?}>
+  const avatarsMap = new Map();
+  if (avatarsRaw) {
+    if (Array.isArray(avatarsRaw)) {
+      for (const a of avatarsRaw) {
+        const id = a.id ?? a.avatarId ?? a.AvatarId ?? a.CharacterID ?? a.baseId;
+        const name = a.name ?? a.text ?? a.Nom;
+        const icon = a.icon ?? a.Icon ?? a.image ?? a.Image;
+        if (id != null) avatarsMap.set(String(id), { name, icon });
+      }
+    } else {
+      for (const [k,v] of Object.entries(avatarsRaw)) {
+        const name = v?.name ?? v?.text;
+        const icon = v?.icon ?? v?.image;
+        avatarsMap.set(String(k), { name, icon });
+      }
+    }
+  }
 
-  const sec = (title, data) => {
-    const s = document.createElement('section');
-    s.className = 'panel';
-    const h = document.createElement('h3'); h.textContent = title; s.appendChild(h);
-    if (data) s.appendChild(Object.prototype.toString.call(data)==='[object Object]'||Array.isArray(data) ?
-      Object.assign(document.createElement('pre'),{textContent: JSON.stringify(data,null,2)}) :
-      Object.assign(document.createElement('p'),{textContent: String(data)}));
-    else s.appendChild(Object.assign(document.createElement('p'),{className:'meta',textContent:`Aucune donnée`}));
-    return s;
-  };
+  const tr = buildTranslator(elementsJson, pathsJson);
 
-  const back = document.createElement('p');
-  const a = document.createElement('a'); a.href = '#/'; a.textContent = '← Retour aux personnages';
-  back.appendChild(a);
+  // Characters list normalization
+  const arrayLike = Array.isArray(characters)
+    ? characters
+    : (characters.characters ?? characters.personnages ?? Object.values(characters));
 
-  container.append(head,
-    sec('Builds', builds),
-    sec('Compétences', skills),
-    sec('Eidolons', eidolons),
-    sec('Traces', traces),
-    sec('Stats', stats),
-    sec('Notes', notes),
-    back);
+  const items = arrayLike.map(c => {
+    const id = pickId(c);
+    const nameFR = resolveNameFR(c, nicknameMap, avatarsMap);
+    const rarity = Number(pickRarity(c)) || 0;
+    const el = pickElement(c);
+    const path = pickPath(c);
+    const elementFR = el ? tr(String(el)) : '';
+    const pathFR    = path ? tr(String(path)) : '';
+    const icon = resolveIcon(c, avatarsMap);
+    return {
+      id: id ?? nameFR,
+      name: nameFR,
+      rarity,
+      element: elementFR,
+      path: pathFR,
+      icon,
+      href: buildHrefFor(nameFR),
+      _norm: {
+        name: normalize(nameFR),
+        el: normalize(elementFR),
+        path: normalize(pathFR),
+        rarity: String(rarity)
+      }
+    };
+  });
+
+  // Renderer (garde ta structure visuelle de carte)
+  function render(rows) {
+    grid.innerHTML = '';
+    for (const it of rows) {
+      const card =
+        $('a', { class: 'card', href: it.href, role:'button', 'aria-label': `Ouvrir ${it.name}` },
+          $('img', { class:'avatar', src: it.icon, alt: it.name, loading:'lazy',
+                     onerror:(e)=>{ e.target.src = 'assets/hsr_avatar_placeholder.svg'; }}),
+          $('div', { class:'card-info' },
+            $('span', { class:'name' }, it.name),
+            $('span', { class:'meta' }, [
+              it.rarity ? `${it.rarity}★` : '—',
+              it.element ? ` • ${it.element}` : '',
+              it.path ? ` • ${it.path}` : ''
+            ].join(''))
+          )
+        );
+      grid.append(card);
+    }
+    count.textContent = `${rows.length} ${rows.length > 1 ? 'résultats' : 'résultat'}`;
+  }
+
+  function apply() {
+    const qv = normalize(q.value);
+    const pv = normalize(selPath.value);
+    const ev = normalize(selEl.value);
+    const rv = String(selR.value || '');
+
+    let rows = items.filter(it =>
+      (!qv || it._norm.name.includes(qv)) &&
+      (!pv || it._norm.path === pv) &&
+      (!ev || it._norm.el === ev) &&
+      (!rv || it._norm.rarity === rv)
+    );
+
+    switch (selSort.value) {
+      case 'name-desc': rows.sort((a,b)=>b.name.localeCompare(a.name)); break;
+      case 'rarity-desc': rows.sort((a,b)=>(b.rarity-a.rarity)||a.name.localeCompare(b.name)); break;
+      case 'rarity-asc': rows.sort((a,b)=>(a.rarity-b.rarity)||a.name.localeCompare(b.name)); break;
+      default: rows.sort((a,b)=>a.name.localeCompare(b.name));
+    }
+
+    const chips = [];
+    if (selPath.value) chips.push(`Voie: ${selPath.value}`);
+    if (selEl.value)   chips.push(`Élément: ${selEl.value}`);
+    if (selR.value)    chips.push(`Rareté: ${selR.value}★`);
+    const pill = by('#activeFilters');
+    if (chips.length) { pill.hidden = false; pill.textContent = chips.join(' • '); }
+    else { pill.hidden = true; pill.textContent = ''; }
+
+    render(rows);
+  }
+
+  // Events
+  q.addEventListener('input', apply);
+  [selPath, selEl, selR, selSort].forEach(sel => sel.addEventListener('change', apply));
+  by('#reset').addEventListener('click', ()=>{
+    q.value=''; selPath.value=''; selEl.value=''; selR.value=''; selSort.value='name-asc'; apply();
+  });
+
+  // First render
+  apply();
 }
 
-// Routes
-registerRoute('/', async () => {
-  if (!ALL.length) {
-    const data = await fetchJSON(PATHS.characters);
-    ALL = normalizeCharacters(data);
-  }
-  showList();
-  wireFilters();
-  applyFilters();
-});
-
-registerRoute('/personnages/:name', async ({ name }) => {
-  if (!ALL.length) {
-    try { ALL = normalizeCharacters(await fetchJSON(PATHS.characters)); } catch {}
-  }
-  await loadDetail(name);
+main().catch(err=>{
+  console.error(err);
+  const grid = document.querySelector('#grid');
+  if (grid) grid.innerHTML = `<p style="opacity:.8">Impossible de charger les personnages. Vérifie les fichiers dans <code>${BASE}</code>.</p>`;
 });

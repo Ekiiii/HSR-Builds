@@ -1,4 +1,4 @@
-// router.js — mini hash-router compatible GitHub Pages
+// router.js — mini hash-router
 const routes = [];
 export function registerRoute(pattern, handler) {
   const keys = [];
@@ -22,7 +22,6 @@ function route() {
       return r.handler(params);
     }
   }
-  // Fallback: home
   const home = routes.find(r => r.regex.test('/'));
   if (home) home.handler({});
 }
